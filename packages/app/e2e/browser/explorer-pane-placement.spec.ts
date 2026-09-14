@@ -222,3 +222,100 @@ test.describe("explorer pane tab placement", () => {
     }
   });
 });
+
+async function closeOnlyDraft(page: Page): Promise<void> {
+  await draftTabChip(page).hover();
+  await page.locator('[data-testid^="workspace-draft-close-"]').filter({ visible: true }).click();
+}
+
+async function moveOnlyDraftIntoRightSplit(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Split pane right", exact: true }).click();
+  const target = await emptyPaneBox(page);
+  await dragChipTo(page, draftTabChip(page), {
+    x: target.x + target.width / 2,
+    y: target.y + target.height / 2,
+  });
+  await expect(visible(page, "workspace-tabs-row")).toHaveCount(1);
+}
+
+async function expectUsableComposer(page: Page): Promise<void> {
+  await expect(page.getByRole("textbox", { name: "Message agent..." })).toBeVisible();
+  await expect(page.getByText("Paseo ran into a problem.", { exact: true })).toHaveCount(0);
+}
+
+async function persistHiddenGeneratedExplorer(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const stored = JSON.parse(localStorage.getItem("workspace-layout-state")!);
+    const key = Object.keys(stored.state.layoutByWorkspace)[0];
+    const tabs = [
+      { tabId: "files", target: { kind: "files" }, createdAt: 1 },
+      { tabId: "changes_tree", target: { kind: "changes_tree" }, createdAt: 1 },
+      ...Array.from({ length: 2250 }, (_, index) => ({
+        tabId: `draft_saved_${index}`,
+        target: { kind: "draft", draftId: `draft_saved_${index}` },
+        createdAt: index + 2,
+      })),
+    ];
+    stored.state.layoutByWorkspace[key] = {
+      root: {
+        kind: "pane",
+        pane: {
+          id: "pane_generated_report_equivalent",
+          hidden: true,
+          tabIds: tabs.map((tab) => tab.tabId),
+          tabs,
+          focusedTabId: tabs[tabs.length - 1].tabId,
+        },
+      },
+      focusedPaneId: null,
+    };
+    stored.state.explorerPaneIdByWorkspace[key] = "pane_generated_report_equivalent";
+    localStorage.setItem("workspace-layout-state", JSON.stringify(stored));
+  });
+}
+
+// Explorer cannot replace the ordinary workspace canvas, including on restore.
+test("closing the last split-born tab with hidden Explorer keeps a usable workspace", async ({
+  page,
+}) => {
+  const workspace = await seedWorkspace({ repoPrefix: "last-pane-hidden-explorer-" });
+  try {
+    await gotoWorkspace(page, workspace.workspaceId);
+    await closeOnlyDraft(page);
+    await expectUsableComposer(page);
+    await moveOnlyDraftIntoRightSplit(page);
+    await closeOnlyDraft(page);
+    await expectUsableComposer(page);
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
+test("visible Explorer does not replace the last ordinary workspace pane", async ({ page }) => {
+  const workspace = await seedWorkspace({ repoPrefix: "last-pane-visible-explorer-" });
+  try {
+    await gotoWorkspace(page, workspace.workspaceId);
+    await page.getByRole("button", { name: "Open Explorer sidebar", exact: true }).click();
+    await moveOnlyDraftIntoRightSplit(page);
+    await closeOnlyDraft(page);
+    await expectUsableComposer(page);
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
+test("reloading a saved hidden generated Explorer recovers a usable workspace", async ({
+  page,
+}) => {
+  const workspace = await seedWorkspace({ repoPrefix: "saved-hidden-explorer-" });
+  try {
+    await gotoWorkspace(page, workspace.workspaceId);
+    await expectUsableComposer(page);
+    await persistHiddenGeneratedExplorer(page);
+    await page.reload();
+    await expectUsableComposer(page);
+  } finally {
+    await workspace.cleanup();
+  }
+});

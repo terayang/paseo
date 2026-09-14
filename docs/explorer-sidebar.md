@@ -57,8 +57,10 @@ lifecycle.
 layout store remembers one ordinary pane per workspace. The first side open creates a full-height
 right split around the workspace root; later side opens reuse it.
 
-Closing the pane or moving away its final tab removes it normally and clears the remembered id. A
-later side open creates a new pane. There is no hidden side-pane lifecycle.
+Removing a pane clears its remembered id; a later side open creates a new pane. The last visible
+ordinary pane stays when its final tab closes. Explorer cannot replace the workspace canvas, even
+when visible. Restoring a saved layout enforces the same rule while preserving Explorer and saved
+tab content. There is no hidden side-pane lifecycle.
 
 Placement intent still controls existing tabs:
 
