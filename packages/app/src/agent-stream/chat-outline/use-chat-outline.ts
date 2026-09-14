@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { AgentTimelinePromptIndexPayload } from "@getpaseo/client/internal/daemon-client";
-import { isWeb } from "@/constants/platform";
 import { useStableEvent } from "@/hooks/use-stable-event";
 import { getHostRuntimeStore } from "@/runtime/host-runtime";
 import { planTimelinePromptJump } from "@/timeline/timeline-sync-plan";
@@ -78,7 +77,7 @@ export function useChatOutline({
   useEffect(() => setIndex(null), [agentId, enabled, serverId, timelineEpoch]);
 
   useEffect(() => {
-    if (!isWeb || !enabled) {
+    if (!enabled) {
       setIndex(null);
       return;
     }
