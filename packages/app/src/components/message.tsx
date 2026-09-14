@@ -25,7 +25,7 @@ import {
   createContext,
   useContext,
 } from "react";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactElement, ReactNode } from "react";
 import type MarkdownIt from "markdown-it";
 import { type ASTNode, type RenderRules } from "react-native-markdown-display";
 import MaskedView from "@react-native-masked-view/masked-view";
@@ -2947,6 +2947,29 @@ export const ExpandableBadge = memo(function ExpandableBadge({
       }
     : {};
 
+  // A Pressable claims the touch responder unconditionally on native
+  // (Pressability returns true from onStartShouldSetResponder unless
+  // disabled), which swallows the scroll gestures of the detail
+  // content's inner scroll views. The wrapper only needs hover
+  // (web-only), so render a plain View on native.
+  let detailWrapper: ReactElement | null = null;
+  if (detailContent) {
+    detailWrapper = isNative ? (
+      <View ref={detailWrapperRef} style={detailWrapperStyle}>
+        {detailContent}
+      </View>
+    ) : (
+      <Pressable
+        ref={detailWrapperRef}
+        style={detailWrapperStyle}
+        onHoverIn={handleDetailHoverIn}
+        onHoverOut={handleDetailHoverOut}
+      >
+        {detailContent}
+      </Pressable>
+    );
+  }
+
   return (
     <View
       style={containerStyle}
@@ -2989,27 +3012,7 @@ export const ExpandableBadge = memo(function ExpandableBadge({
           />
         </View>
       </Pressable>
-      {detailContent ? (
-        isNative ? (
-          // A Pressable claims the touch responder unconditionally on native
-          // (Pressability returns true from onStartShouldSetResponder unless
-          // disabled), which swallows the scroll gestures of the detail
-          // content's inner scroll views. The wrapper only needs hover
-          // (web-only), so render a plain View on native.
-          <View ref={detailWrapperRef} style={detailWrapperStyle}>
-            {detailContent}
-          </View>
-        ) : (
-          <Pressable
-            ref={detailWrapperRef}
-            style={detailWrapperStyle}
-            onHoverIn={handleDetailHoverIn}
-            onHoverOut={handleDetailHoverOut}
-          >
-            {detailContent}
-          </Pressable>
-        )
-      ) : null}
+      {detailWrapper}
     </View>
   );
 }, areExpandableBadgePropsEqual);
