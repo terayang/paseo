@@ -90,6 +90,13 @@ const variants = {
       fallbackRelativePath: "./.secrets/GoogleService-Info.debug.plist",
     }),
   },
+  // Fork-only distribution variant (tablet/foldable large-screen builds,
+  // see the workspace's outer 适配实施记录.md). Separate packageId so it
+  // coexists with the official app; no Firebase config is provided.
+  largescreen: {
+    name: "Paseo Large Screen",
+    packageId: "sh.paseo.largescreen",
+  },
 };
 
 const variant = variants[appVariant] ?? variants.production;
