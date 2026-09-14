@@ -165,7 +165,7 @@ export async function createCreationScenario(page: Page) {
       await pressSubmitBeforeTheNextRender(page, button);
     },
     async expectPromptVisible(prompt?: string) {
-      const rows = page.getByTestId("user-message");
+      const rows = page.getByTestId("user-message").filter({ visible: true });
       await expect(prompt ? rows.filter({ hasText: prompt }) : rows.first()).toBeVisible();
     },
     async expectWorkspaceReadyBeforeAgentCompletion() {
