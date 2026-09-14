@@ -100,6 +100,11 @@ export default {
     name: variant.name,
     slug: "voice-mobile",
     version: nativeReleaseVersion.appVersion,
+    // Stays "portrait" so iOS keeps its static lock (rotating the iPadOS app
+    // crashes it, see getpaseo/paseo#1030). On Android the
+    // with-android-rotation config plugin rewrites the activities to follow
+    // the system, and useAdaptiveOrientation locks phones at runtime while
+    // tablets and unfolded foldables stay unlocked.
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "paseo",
