@@ -1,6 +1,12 @@
 import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import type { ReactElement } from "react";
-import { Pressable, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
+import {
+  Pressable,
+  Text,
+  View,
+  type GestureResponderEvent,
+  type LayoutChangeEvent,
+} from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import * as Haptics from "expo-haptics";
 import { useContainerWidthBelow } from "@/hooks/use-container-width";
@@ -21,6 +27,8 @@ const RESTING_PILL_WIDTH = 10;
 const PREVIEW_WIDTH = 260;
 const PREVIEW_HEIGHT = 48;
 const PREVIEW_GAP = 4;
+
+const alwaysSetResponder = () => true;
 
 /**
  * Native touch version of the chat outline rail. The rail is a scrubber:
@@ -102,11 +110,17 @@ export function ChatOutlineRail({
     [onJumpToPrompt],
   );
 
+  const previewPrompt = scrubIndex !== null ? (prompts[scrubIndex] ?? null) : null;
+
+  const handlePreviewPress = useCallback(() => {
+    if (previewPrompt) {
+      handleJump(previewPrompt.seq);
+    }
+  }, [handleJump, previewPrompt]);
+
   if (prompts.length < 2) {
     return null;
   }
-
-  const previewPrompt = scrubIndex !== null ? prompts[scrubIndex] : null;
 
   return (
     <View style={styles.panelMeasure} pointerEvents="box-none" onLayout={onLayout}>
@@ -116,8 +130,8 @@ export function ChatOutlineRail({
             style={styles.rail}
             testID="chat-outline-rail"
             onLayout={handleRailLayout}
-            onStartShouldSetResponder={() => true}
-            onMoveShouldSetResponder={() => true}
+            onStartShouldSetResponder={alwaysSetResponder}
+            onMoveShouldSetResponder={alwaysSetResponder}
             onResponderGrant={handleGrant}
             onResponderMove={handleMove}
           >
@@ -135,7 +149,7 @@ export function ChatOutlineRail({
               testID="chat-outline-preview"
               accessibilityRole="button"
               accessibilityLabel={`${previewPrompt.seq}`}
-              onPress={() => handleJump(previewPrompt.seq)}
+              onPress={handlePreviewPress}
             >
               <Text style={styles.previewText} numberOfLines={2}>
                 {previewPrompt.preview}
@@ -148,21 +162,11 @@ export function ChatOutlineRail({
   );
 }
 
-function ChatOutlineTick({
-  isActive,
-  hasAttention,
-}: {
-  isActive: boolean;
-  hasAttention: boolean;
-}) {
+function ChatOutlineTick({ isActive, hasAttention }: { isActive: boolean; hasAttention: boolean }) {
   return (
     <View style={styles.slot}>
       <View
-        style={[
-          styles.pill,
-          isActive && styles.pillActive,
-          hasAttention && styles.pillAttention,
-        ]}
+        style={[styles.pill, isActive && styles.pillActive, hasAttention && styles.pillAttention]}
         testID="chat-outline-tick"
       />
     </View>
@@ -224,7 +228,7 @@ const styles = StyleSheet.create((theme) => ({
     ...theme.shadow.md,
   },
   previewText: {
-    fontSize: theme.fontSize.xs,
+    fontSize: theme.fontSize.sm,
     color: theme.colors.foreground,
   },
 }));

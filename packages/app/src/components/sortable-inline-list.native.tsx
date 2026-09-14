@@ -112,18 +112,13 @@ export function SortableInlineList<T>({
     <>
       {data.map((item, index) => {
         const id = keyExtractor(item, index);
-        const info: DraggableRenderItemInfo<T> = {
-          item,
-          index,
-          drag: () => {},
-          isActive: activeIndex === index,
-        };
         return (
           <SortableNativeItem
             key={id}
             index={index}
             renderItem={renderItem}
-            info={info}
+            item={item}
+            isActive={activeIndex === index}
             dragIndex={dragIndex}
             translationX={translationX}
             targetIndex={targetIndex}
@@ -141,7 +136,8 @@ export function SortableInlineList<T>({
 interface SortableNativeItemProps<T> {
   index: number;
   renderItem: (info: DraggableRenderItemInfo<T>) => ReactElement;
-  info: DraggableRenderItemInfo<T>;
+  item: T;
+  isActive: boolean;
   dragIndex: SharedValue<number>;
   translationX: SharedValue<number>;
   targetIndex: SharedValue<number>;
@@ -154,7 +150,8 @@ interface SortableNativeItemProps<T> {
 function SortableNativeItem<T>({
   index,
   renderItem,
-  info,
+  item,
+  isActive,
   dragIndex,
   translationX,
   targetIndex,
@@ -223,7 +220,19 @@ function SortableNativeItem<T>({
             resetDragState();
           }
         }),
-    [commitReorder, dragIndex, index, resetDragState, setActiveIndex, targetIndex, touchStartTime, touchStartX, touchStartY, translationX, widths],
+    [
+      commitReorder,
+      dragIndex,
+      index,
+      resetDragState,
+      setActiveIndex,
+      targetIndex,
+      touchStartTime,
+      touchStartX,
+      touchStartY,
+      translationX,
+      widths,
+    ],
   );
 
   const handleLayout = useCallback(
@@ -264,7 +273,7 @@ function SortableNativeItem<T>({
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View onLayout={handleLayout} style={animatedStyle}>
-        {renderItem(info)}
+        {renderItem({ item, index, drag: () => {}, isActive })}
       </Animated.View>
     </GestureDetector>
   );
