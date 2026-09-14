@@ -225,7 +225,7 @@ test.describe("explorer pane tab placement", () => {
 
 async function closeOnlyDraft(page: Page): Promise<void> {
   await draftTabChip(page).hover();
-  await page.locator('[data-testid^="workspace-draft-close-"]').filter({ visible: true }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
 }
 
 async function moveOnlyDraftIntoRightSplit(page: Page): Promise<void> {

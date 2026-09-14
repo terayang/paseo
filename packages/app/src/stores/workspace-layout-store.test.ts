@@ -1085,35 +1085,38 @@ describe("workspace-layout-store actions", () => {
     expect(workspaceLayoutStore.getState().layoutByWorkspace[workspaceKey]).toBe(before);
   });
 
-  it.each([true, false])("retains the last ordinary split when Explorer hidden=%s", (hidden) => {
-    const workspaceKey = createWorkspaceKey();
-    const store = workspaceLayoutStore.getState();
-    const tabId = store.openTab({
-      workspaceKey,
-      target: { kind: "draft", draftId: "draft-origin" },
-      intent: "new",
-    }) as string;
-    if (!hidden) store.showExplorerSidebar(workspaceKey);
-    const splitPaneId = store.splitPaneEmpty(workspaceKey, {
-      targetPaneId: "main",
-      position: "right",
-    }) as string;
-    store.moveTabToPane(workspaceKey, tabId, splitPaneId);
-    expect(
-      findPaneById(workspaceLayoutStore.getState().layoutByWorkspace[workspaceKey].root, "main"),
-    ).toBeNull();
+  it.each(["hideExplorerSidebar", "showExplorerSidebar"] as const)(
+    "retains the last ordinary split after %s",
+    (setExplorerVisibility) => {
+      const workspaceKey = createWorkspaceKey();
+      const store = workspaceLayoutStore.getState();
+      const tabId = store.openTab({
+        workspaceKey,
+        target: { kind: "draft", draftId: "draft-origin" },
+        intent: "new",
+      }) as string;
+      store[setExplorerVisibility](workspaceKey);
+      const splitPaneId = store.splitPaneEmpty(workspaceKey, {
+        targetPaneId: "main",
+        position: "right",
+      }) as string;
+      store.moveTabToPane(workspaceKey, tabId, splitPaneId);
+      expect(
+        findPaneById(workspaceLayoutStore.getState().layoutByWorkspace[workspaceKey].root, "main"),
+      ).toBeNull();
 
-    store.closeTab(workspaceKey, tabId);
+      store.closeTab(workspaceKey, tabId);
 
-    const layout = workspaceLayoutStore.getState().layoutByWorkspace[workspaceKey];
-    expect(
-      collectAllPanes(layout.root)
-        .filter((pane) => pane.id !== "explorer")
-        .map((pane) => pane.id),
-    ).toEqual([splitPaneId]);
-    expect(findPaneById(layout.root, splitPaneId)?.tabIds).toHaveLength(1);
-    expect(layout.focusedPaneId).toBe(splitPaneId);
-  });
+      const layout = workspaceLayoutStore.getState().layoutByWorkspace[workspaceKey];
+      expect(
+        collectAllPanes(layout.root)
+          .filter((pane) => pane.id !== "explorer")
+          .map((pane) => pane.id),
+      ).toEqual([splitPaneId]);
+      expect(findPaneById(layout.root, splitPaneId)?.tabIds).toHaveLength(1);
+      expect(layout.focusedPaneId).toBe(splitPaneId);
+    },
+  );
 
   it.each(["explorer", "pane_generated_explorer"])(
     "restores an ordinary pane beside saved hidden %s without losing tabs",
