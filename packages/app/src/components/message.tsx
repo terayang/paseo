@@ -46,7 +46,7 @@ import {
   TriangleAlertIcon,
   XCircle,
 } from "lucide-react-native";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactElement, ReactNode } from "react";
 import * as React from "react";
 import {
   createContext,
@@ -2132,6 +2132,29 @@ export const ExpandableBadge = memo(function ExpandableBadge({
       }
     : {};
 
+  // A Pressable claims the touch responder unconditionally on native
+  // (Pressability returns true from onStartShouldSetResponder unless
+  // disabled), which swallows the scroll gestures of the detail
+  // content's inner scroll views. The wrapper only needs hover
+  // (web-only), so render a plain View on native.
+  let detailWrapper: ReactElement | null = null;
+  if (detailContent) {
+    detailWrapper = isNative ? (
+      <View ref={detailWrapperRef} style={detailWrapperStyle}>
+        {detailContent}
+      </View>
+    ) : (
+      <Pressable
+        ref={detailWrapperRef}
+        style={detailWrapperStyle}
+        onHoverIn={handleDetailHoverIn}
+        onHoverOut={handleDetailHoverOut}
+      >
+        {detailContent}
+      </Pressable>
+    );
+  }
+
   return (
     <View
       style={containerStyle}
@@ -2174,27 +2197,7 @@ export const ExpandableBadge = memo(function ExpandableBadge({
           />
         </View>
       </Pressable>
-      {detailContent ? (
-        isNative ? (
-          // A Pressable claims the touch responder unconditionally on native
-          // (Pressability returns true from onStartShouldSetResponder unless
-          // disabled), which swallows the scroll gestures of the detail
-          // content's inner scroll views. The wrapper only needs hover
-          // (web-only), so render a plain View on native.
-          <View ref={detailWrapperRef} style={detailWrapperStyle}>
-            {detailContent}
-          </View>
-        ) : (
-          <Pressable
-            ref={detailWrapperRef}
-            style={detailWrapperStyle}
-            onHoverIn={handleDetailHoverIn}
-            onHoverOut={handleDetailHoverOut}
-          >
-            {detailContent}
-          </Pressable>
-        )
-      ) : null}
+      {detailWrapper}
     </View>
   );
 }, areExpandableBadgePropsEqual);
