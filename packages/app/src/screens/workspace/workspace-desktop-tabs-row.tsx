@@ -41,7 +41,15 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MobileTabTrailingAccessory } from "@/screens/workspace/workspace-tab-trailing-accessory";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useShortcutKeys } from "@/hooks/use-shortcut-keys";
 import { WORKSPACE_SECONDARY_HEADER_HEIGHT, useIsCompactFormFactor } from "@/constants/layout";
@@ -765,6 +773,13 @@ function TabChip({
         },
       } as const)
     : undefined;
+  const tabMenuTriggerBlockers = useMemo(() => {
+    if (!isNative) return undefined;
+    const stop = (event: { stopPropagation?: () => void }) => {
+      event.stopPropagation?.();
+    };
+    return { onPointerDown: stop, onMouseDown: stop, onPressIn: stop, onPress: stop } as const;
+  }, []);
 
   const tabChipStyle = useCallback(
     () => [
@@ -834,11 +849,11 @@ function TabChip({
         <Tooltip delayDuration={400} enabledOnDesktop enabledOnMobile={false}>
           <TooltipTrigger asChild triggerRefProp="triggerRef">
             <ContextMenuTrigger
+              enabledOnMobile={false}
               {...(dragHandleProps?.attributes as object | undefined)}
               {...(dragHandleProps?.listeners as object | undefined)}
               testID={`workspace-tab-${testIdentity}`}
               triggerRef={dragHandleProps?.setActivatorNodeRef as unknown as undefined}
-              enabledOnMobile={false}
               style={tabChipStyle}
               onPressIn={handleNavigateTab}
               onPress={handleNavigateTab}
@@ -856,6 +871,14 @@ function TabChip({
                 tabLabelStyle={tabLabelStyle}
                 modifiedTestId={`workspace-tab-modified-${testIdentity}`}
               />
+              {isNative ? (
+                <MobileTabTrailingAccessory
+                  menuTestIDBase={contextMenuTestId}
+                  presentationLabel={tooltipLabel}
+                  menuEntries={menuEntries}
+                  triggerProps={tabMenuTriggerBlockers}
+                />
+              ) : null}
             </ContextMenuTrigger>
           </TooltipTrigger>
           <TooltipContent

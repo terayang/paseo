@@ -79,7 +79,7 @@ import { setAssistantMarkdownBlockHeight } from "@/utils/assistant-message-heigh
 import { isRenderProfileEnabled } from "@/utils/render-profiler";
 import { getAgentAttachmentPillContent } from "@/attachments/attachment-pill-content";
 import { PlanCard } from "./plan-card";
-import { useToolCallSheet } from "./tool-call-sheet";
+import { useToolCallSheet, type ToolCallSheetData } from "./tool-call-sheet";
 import { ToolCallDetailsContent } from "./tool-call-details";
 import {
   AssistantInlineCodePathLink,
@@ -2971,14 +2971,25 @@ export const ExpandableBadge = memo(function ExpandableBadge({
         </View>
       </Pressable>
       {detailContent ? (
-        <Pressable
-          ref={detailWrapperRef}
-          style={detailWrapperStyle}
-          onHoverIn={handleDetailHoverIn}
-          onHoverOut={handleDetailHoverOut}
-        >
-          {detailContent}
-        </Pressable>
+        isNative ? (
+          // A Pressable claims the touch responder unconditionally on native
+          // (Pressability returns true from onStartShouldSetResponder unless
+          // disabled), which swallows the scroll gestures of the detail
+          // content's inner scroll views. The wrapper only needs hover
+          // (web-only), so render a plain View on native.
+          <View ref={detailWrapperRef} style={detailWrapperStyle}>
+            {detailContent}
+          </View>
+        ) : (
+          <Pressable
+            ref={detailWrapperRef}
+            style={detailWrapperStyle}
+            onHoverIn={handleDetailHoverIn}
+            onHoverOut={handleDetailHoverOut}
+          >
+            {detailContent}
+          </Pressable>
+        )
       ) : null}
     </View>
   );
@@ -3040,11 +3051,17 @@ export const ToolCall = memo(function ToolCall({
   forceInline = false,
   maxDetailHeight = 400,
 }: ToolCallProps) {
-  const { openToolCall } = useToolCallSheet();
+  const { openToolCall, syncToolCallData } = useToolCallSheet();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded ?? false);
+  const sheetTokenRef = useRef<object | null>(null);
 
   const isMobile = useIsCompactFormFactor();
-  const shouldRenderInline = !isMobile || forceInline;
+  // The desktop shell renders tool details inline, but on native tablets that
+  // nests a scroll view inside the inverted conversation FlatList, which
+  // fights the parent gesture (Android nested scroll inverts the direction).
+  // Route native tablets through the sheet like phones do — the sheet is an
+  // RNGH-owned container, so the inner scroll view scrolls cleanly.
+  const shouldRenderInline = (!isMobile && !isNative) || forceInline;
 
   const effectiveDetail = useMemo<ToolCallDetail | undefined>(() => {
     if (detail) {
@@ -3081,31 +3098,36 @@ export const ToolCall = memo(function ToolCall({
     return () => onOpenFilePath(openFilePath);
   }, [presentation.openFilePath, onOpenFilePath]);
 
+  const buildSheetData = useCallback(
+    (): ToolCallSheetData => ({
+      toolName,
+      displayName: presentation.displayName,
+      summary: presentation.summary,
+      detail: effectiveDetail,
+      errorText: presentation.errorText,
+      icon: presentation.icon,
+      showLoadingSkeleton: presentation.isLoadingDetails,
+    }),
+    [toolName, presentation, effectiveDetail],
+  );
+
   const handleToggle = useCallback(() => {
     if (!shouldRenderInline) {
-      openToolCall({
-        toolName,
-        displayName: presentation.displayName,
-        summary: presentation.summary,
-        detail: effectiveDetail,
-        errorText: presentation.errorText,
-        icon: presentation.icon,
-        showLoadingSkeleton: presentation.isLoadingDetails,
-      });
+      const token = {};
+      sheetTokenRef.current = token;
+      openToolCall(token, buildSheetData());
     } else {
       setIsExpanded((prev) => !prev);
     }
-  }, [
-    shouldRenderInline,
-    openToolCall,
-    toolName,
-    presentation.displayName,
-    presentation.summary,
-    presentation.errorText,
-    presentation.icon,
-    presentation.isLoadingDetails,
-    effectiveDetail,
-  ]);
+  }, [shouldRenderInline, openToolCall, buildSheetData]);
+
+  // Re-sync the open sheet with the live tool call as stream updates arrive, so
+  // streaming output keeps growing instead of freezing at open time.
+  useEffect(() => {
+    if (sheetTokenRef.current) {
+      syncToolCallData(sheetTokenRef.current, buildSheetData());
+    }
+  }, [buildSheetData, syncToolCallData]);
 
   useEffect(() => {
     if (!onInlineDetailsHoverChange || !shouldRenderInline || isExpanded) {
