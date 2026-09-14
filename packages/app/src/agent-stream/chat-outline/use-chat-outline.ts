@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { AgentTimelinePromptIndexPayload } from "@getpaseo/client/internal/daemon-client";
-import { isWeb } from "@/constants/platform";
 import { useStableEvent } from "@/hooks/use-stable-event";
 import { getHostRuntimeStore } from "@/runtime/host-runtime";
 import { planTimelinePromptJump } from "@/timeline/timeline-sync-plan";
@@ -80,7 +79,7 @@ export function useChatOutline({
   // Only a timeline the daemon has served can be indexed. A draft's optimistic stream has no
   // epoch, and its id names no agent the daemon knows.
   useEffect(() => {
-    if (!isWeb || !enabled || timelineEpoch === null) {
+    if (!enabled || timelineEpoch === null) {
       setIndex(null);
       return;
     }
