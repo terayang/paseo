@@ -1,6 +1,8 @@
 export const SOURCE_PRESENTATION_BUDGETS = {
   web: { highlighted: 10 * 1024 * 1024, plain: 50 * 1024 * 1024 },
-  native: { highlighted: 1024 * 1024, plain: 10 * 1024 * 1024 },
+  // Native matches web: the tablet/foldable targets have the headroom, and
+  // large HTML exports (reports, notebooks) should stay previewable.
+  native: { highlighted: 10 * 1024 * 1024, plain: 50 * 1024 * 1024 },
 } as const;
 
 export type SourcePresentation = "highlighted" | "plain" | "unsupported";
