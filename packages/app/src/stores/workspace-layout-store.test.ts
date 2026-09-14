@@ -1162,7 +1162,7 @@ describe("workspace-layout-store actions", () => {
       expect(restored.getState().layoutByWorkspace[workspaceKey]).toEqual(afterFirstReconcile);
       expect(
         collectAllTabs(afterFirstReconcile.root).filter((tab) => tab.target.kind === "draft"),
-      ).toHaveLength(2);
+      ).toHaveLength(1);
       expect(
         collectAllTabs(afterFirstReconcile.root).find((tab) => tab.tabId === "draft_saved")?.state,
       ).toEqual({ savedContent: "preserve me" });
@@ -3193,6 +3193,13 @@ describe("workspace-layout-store actions", () => {
       intent: "reveal",
     });
     store.closeTab(workspaceKey, tabId!);
+    store.reconcileTabs(workspaceKey, {
+      agentsHydrated: true,
+      terminalsHydrated: true,
+      activeAgentIds: [],
+      autoOpenAgentIds: [],
+      standaloneTerminalIds: [],
+    });
     const layout = workspaceLayoutStore.getState().layoutByWorkspace[workspaceKey];
 
     const mainTab = collectAllTabs(layout.root).find(
@@ -3482,10 +3489,10 @@ describe("workspace-layout-store actions", () => {
     expect(findPaneById(layout.root, "main")?.focusedTabId).toBe("agent_agent-1");
   });
 
-  it("reconcileTabs lands on a draft when the hydrated workspace is empty", () => {
+  it("reconcileTabs initializes the New launcher once when the hydrated workspace is empty", () => {
     const workspaceKey = createWorkspaceKey();
-
-    workspaceLayoutStore.getState().reconcileTabs(workspaceKey, {
+    const store = workspaceLayoutStore.getState();
+    const snapshot = {
       agentsHydrated: true,
       terminalsHydrated: true,
       activeAgentIds: [],
@@ -3493,14 +3500,22 @@ describe("workspace-layout-store actions", () => {
       knownTerminalIds: [],
       standaloneTerminalIds: [],
       hasActivePendingDraftCreate: false,
-    });
+    };
 
-    const layout = workspaceLayoutStore.getState().layoutByWorkspace[workspaceKey];
-    const mainTab = collectAllTabs(layout.root).find(
-      (tab) => findPaneContainingTab(layout.root, tab.tabId)?.id === "main",
-    );
-    expect(mainTab?.target.kind).toBe("draft");
-    expect(findPaneById(layout.root, "main")?.focusedTabId).toBe(mainTab?.tabId);
+    store.reconcileTabs(workspaceKey, snapshot);
+
+    const initialized = workspaceLayoutStore.getState();
+    const layout = initialized.layoutByWorkspace[workspaceKey];
+    expect(collectAllTabs(layout.root).map((tab) => tab.target)).toEqual([
+      { kind: "new_tab" },
+      { kind: "files" },
+      { kind: "changes_tree" },
+    ]);
+    expect(layout.focusedPaneId).toBe("main");
+
+    store.reconcileTabs(workspaceKey, snapshot);
+
+    expect(workspaceLayoutStore.getState()).toBe(initialized);
   });
 
   it.each([
@@ -3593,9 +3608,7 @@ describe("workspace-layout-store actions", () => {
       const mainTabs = collectAllTabs(afterThirdReconcile.root).filter(
         (tab) => findPaneContainingTab(afterThirdReconcile.root, tab.tabId)?.id === ordinaryPaneId,
       );
-      expect(mainTabs).toEqual([
-        expect.objectContaining({ target: expect.objectContaining({ kind: "draft" }) }),
-      ]);
+      expect(mainTabs).toEqual([expect.objectContaining({ target: { kind: "new_tab" } })]);
     },
   );
 

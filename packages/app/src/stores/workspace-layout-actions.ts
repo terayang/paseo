@@ -11,7 +11,6 @@ import {
   workspaceTabTargetsEqual,
 } from "@/workspace-tabs/identity";
 import { createNewWorkspaceTab } from "@/workspace-tabs/new-tab";
-import { generateDraftId } from "@/stores/draft-keys";
 
 export interface SplitPane {
   id: string;
@@ -2414,43 +2413,6 @@ function addMissingEntityTabs(input: {
   return nextLayout;
 }
 
-function seedDraftForEmptyWorkspace(input: {
-  layout: WorkspaceLayout;
-  snapshot: WorkspaceTabSnapshot;
-  activeAgentIds: Set<string>;
-  knownTerminalIds: Set<string>;
-  explorerSidebarPaneId: string | null;
-}): WorkspaceLayout {
-  const ready = input.snapshot.agentsHydrated && input.snapshot.terminalsHydrated;
-  const creatingContent =
-    input.snapshot.hasActivePendingDraftCreate === true ||
-    input.snapshot.hasActivePendingTerminalCreate === true;
-  const hasWorkspaceEntities = input.activeAgentIds.size > 0 || input.knownTerminalIds.size > 0;
-  const explorerTabIds = new Set(
-    input.explorerSidebarPaneId
-      ? (findPaneById(input.layout.root, input.explorerSidebarPaneId)?.tabIds ?? [])
-      : [],
-  );
-  const hasContentTab = collectAllTabs(input.layout.root).some(
-    (tab) => tab.target.kind !== "new_tab" && !explorerTabIds.has(tab.tabId),
-  );
-  if (!ready || creatingContent || hasWorkspaceEntities || hasContentTab) {
-    return input.layout;
-  }
-
-  const draftId = generateDraftId();
-  return (
-    createTabInLayout({
-      layout: input.layout,
-      target: { kind: "draft", draftId },
-      now: Date.now(),
-      placement: FOCUSED_PANE_PLACEMENT,
-      explorerSidebarPaneId: input.explorerSidebarPaneId,
-      createTabId: () => draftId,
-    })?.layout ?? input.layout
-  );
-}
-
 export function reconcileWorkspaceTabs(
   state: WorkspaceTabReconcileState,
   snapshot: WorkspaceTabSnapshot,
@@ -2539,14 +2501,6 @@ export function reconcileWorkspaceTabs(
     standaloneTerminalIds,
     hasActivePendingTerminalCreate: snapshot.hasActivePendingTerminalCreate ?? false,
     hasActivePendingDraftCreate: snapshot.hasActivePendingDraftCreate ?? false,
-    explorerSidebarPaneId: state.explorerSidebarPaneId,
-  });
-
-  nextLayout = seedDraftForEmptyWorkspace({
-    layout: nextLayout,
-    snapshot,
-    activeAgentIds,
-    knownTerminalIds,
     explorerSidebarPaneId: state.explorerSidebarPaneId,
   });
 

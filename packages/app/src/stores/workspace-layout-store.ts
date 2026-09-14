@@ -1225,6 +1225,7 @@ export function createWorkspaceLayoutStore(
               }
             }
             if (
+              state.layoutByWorkspace[normalizedWorkspaceKey] &&
               nextLayout === rawLayout &&
               pinnedAgentIdsByWorkspace === state.pinnedAgentIdsByWorkspace
             ) {
