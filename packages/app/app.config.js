@@ -104,8 +104,8 @@ export default {
     // Stays "portrait" so iOS keeps its static lock (rotating the iPadOS app
     // crashes it, see getpaseo/paseo#1030). On Android the
     // with-android-rotation config plugin rewrites the activities to follow
-    // the system, and useAdaptiveOrientation locks phones at runtime while
-    // tablets and unfolded foldables stay unlocked.
+    // the system and injects a native orientation policy into MainActivity
+    // (small displays lock portrait, large displays rotate freely).
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "paseo",
