@@ -34,6 +34,7 @@ import {
   BottomSheetBackgroundProps,
 } from "@gorhom/bottom-sheet";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Check, File, Folder, Search } from "lucide-react-native";
 import {
   flip,
@@ -74,6 +75,10 @@ import { buildDesktopFrameStyle } from "./combobox-frame-style";
 export { buildDesktopFrameStyle } from "./combobox-frame-style";
 
 const IS_WEB = isWeb;
+// Android Modals live in a separate native view hierarchy, outside the
+// app-level GestureHandlerRootView — RNGH gestures (model-browser rows)
+// silently dead-end without a local root (getpaseo/paseo#4377).
+const GESTURE_ROOT_FILL = { flex: 1 };
 
 export type ComboboxOption = ComboboxOptionModel;
 export type ComboboxDesktopPlacement = "top-start" | "bottom-start";
@@ -1266,7 +1271,7 @@ function DesktopComboboxBody(props: DesktopBodyProps): ReactElement {
       visible={props.isOpen}
       onRequestClose={props.handleClose}
     >
-      {overlay}
+      <GestureHandlerRootView style={GESTURE_ROOT_FILL}>{overlay}</GestureHandlerRootView>
     </Modal>
   );
 }

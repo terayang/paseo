@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Modal, Platform, Pressable, Text, View } from "react-native";
 import type { DimensionValue, StyleProp, ViewStyle } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import {
@@ -69,6 +70,10 @@ export interface SheetHeader {
 
 const SCROLL_CONTENT_GROW = { flexGrow: 1 };
 const ABSOLUTE_FILL_STYLE = { ...StyleSheet.absoluteFillObject };
+// Android Modals live in a separate native view hierarchy, outside the app-level
+// GestureHandlerRootView — RNGH gestures (model-browser rows) silently dead-end
+// without a local root (getpaseo/paseo#4377).
+const GESTURE_ROOT_FILL = { flex: 1 };
 
 const styles = StyleSheet.create((theme) => ({
   desktopOverlay: {
@@ -724,7 +729,7 @@ export function AdaptiveModalSheet({
       onDismiss={notifyNativeModalDismiss}
       hardwareAccelerated
     >
-      {desktopContent}
+      <GestureHandlerRootView style={GESTURE_ROOT_FILL}>{desktopContent}</GestureHandlerRootView>
     </Modal>
   );
 }
