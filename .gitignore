@@ -93,3 +93,6 @@ app.json
 
 # Heap snapshots dumped by --heapsnapshot-near-heap-limit; keep them for debugging.
 *.heapsnapshot
+
+# local signing keystore (never commit)
+/keystore/)
