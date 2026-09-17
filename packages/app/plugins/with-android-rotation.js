@@ -27,12 +27,14 @@ function withRotationManifest(config) {
     }
     for (const activity of application.activity ?? []) {
       if (activity.$?.["android:screenOrientation"]) {
-        // fullSensor (not unspecified): an explicit opt-in to all orientations.
+        // fullUser (not unspecified): an explicit opt-in to all orientations.
         // A portrait-locked activity that lands on a landscape display (foldable
         // cover -> inner screen, car/freeform host) gets orientation-letterboxed,
         // and the letterbox sticks across unlock + recreate when the manifest
-        // value is unspecified. fullSensor lets the system expand the window.
-        activity.$["android:screenOrientation"] = "fullSensor";
+        // value is unspecified. fullUser lets the system expand the window.
+        // fullSensor would also work but ignores the system rotation lock;
+        // fullUser tracks the sensor the same way while honoring that lock.
+        activity.$["android:screenOrientation"] = "fullUser";
         activity.$["android:resizeableActivity"] = "true";
         const configChanges = activity.$["android:configChanges"];
         if (typeof configChanges === "string" && !configChanges.includes("smallestScreenSize")) {
@@ -72,6 +74,15 @@ const ADAPTIVE_ORIENTATION_METHODS = `
     applyAdaptiveOrientation()
   }
 
+  // Hot starts reach neither onCreate nor (reliably) onConfigurationChanged:
+  // the cover -> inner display switch happens while the activity is stopped
+  // on the launcher, so resume is where the stale portrait lock from the
+  // cover screen must be re-evaluated.
+  override fun onResume() {
+    super.onResume()
+    applyAdaptiveOrientation()
+  }
+
   private fun applyAdaptiveOrientation() {
     val currentDisplay = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       display
@@ -86,7 +97,9 @@ const ADAPTIVE_ORIENTATION_METHODS = `
     val windowLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     requestedOrientation =
       if (smallestWidthDp >= 600 || (windowLandscape && displayPortrait)) {
-        ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        // fullUser (not fullSensor): same sensor-driven rotation, but honors
+        // the system rotation lock instead of overriding it.
+        ActivityInfo.SCREEN_ORIENTATION_FULL_USER
       } else {
         ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
       }
