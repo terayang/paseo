@@ -95,4 +95,4 @@ app.json
 *.heapsnapshot
 
 # local signing keystore (never commit)
-/keystore/)
+/keystore/
