@@ -41,15 +41,21 @@ interface ApplyThemeInput {
 
 const ContributedThemesContext = createContext<ContributedThemes | null>(null);
 
-// Edge-to-edge draws the app under the Android system bars, and the bars keep
-// their default light icon style unless told otherwise — invisible on light
-// backgrounds (status bar clock/battery unreadable). Track the app theme.
-function applySystemBarStyle(colorScheme: "light" | "dark" | "auto"): void {
-  if (colorScheme === "auto") {
-    SystemBars.setStyle("auto");
-    return;
+// The component form subscribes to system appearance changes. The imperative
+// setStyle("auto") only resolves the current scheme once, leaving dark icons
+// on a dark background when the system switches themes while the app is open.
+function systemBarStyle({
+  preference,
+  contributedTheme,
+}: ApplyThemeInput): "auto" | "light" | "dark" {
+  if (contributedTheme) {
+    return contributedTheme.theme.colorScheme === "dark" ? "light" : "dark";
   }
-  SystemBars.setStyle(colorScheme === "dark" ? "light" : "dark");
+  const builtInPreference =
+    preference === PLUGIN_THEME_PREFERENCE ? DEFAULT_THEME_PREFERENCE : preference;
+  if (builtInPreference === "auto") return "auto";
+  const theme = REGISTERED_THEMES[THEME_TO_UNISTYLES[builtInPreference]];
+  return theme.colorScheme === "dark" ? "light" : "dark";
 }
 
 function applyTheme({ preference, contributedTheme }: ApplyThemeInput): void {
@@ -58,7 +64,6 @@ function applyTheme({ preference, contributedTheme }: ApplyThemeInput): void {
     UnistylesRuntime.updateTheme(themeName, () => contributedTheme.theme);
     UnistylesRuntime.setAdaptiveThemes(false);
     UnistylesRuntime.setTheme(themeName);
-    applySystemBarStyle(contributedTheme.theme.colorScheme);
     return;
   }
 
@@ -66,14 +71,11 @@ function applyTheme({ preference, contributedTheme }: ApplyThemeInput): void {
     preference === PLUGIN_THEME_PREFERENCE ? DEFAULT_THEME_PREFERENCE : preference;
   if (builtInPreference === "auto") {
     UnistylesRuntime.setAdaptiveThemes(true);
-    applySystemBarStyle("auto");
     return;
   }
 
-  const unistylesName = THEME_TO_UNISTYLES[builtInPreference];
   UnistylesRuntime.setAdaptiveThemes(false);
-  UnistylesRuntime.setTheme(unistylesName);
-  applySystemBarStyle(REGISTERED_THEMES[unistylesName].colorScheme);
+  UnistylesRuntime.setTheme(THEME_TO_UNISTYLES[builtInPreference]);
 }
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
@@ -128,7 +130,12 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   if (!hasAppliedAppearance) return null;
 
   return (
-    <ContributedThemesContext.Provider value={value}>{children}</ContributedThemesContext.Provider>
+    <ContributedThemesContext.Provider value={value}>
+      <SystemBars
+        style={systemBarStyle({ preference: settings.theme, contributedTheme: selected })}
+      />
+      {children}
+    </ContributedThemesContext.Provider>
   );
 }
 

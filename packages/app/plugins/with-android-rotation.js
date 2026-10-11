@@ -57,6 +57,7 @@ function withRotationManifest(config) {
 const ADAPTIVE_ORIENTATION_IMPORTS = `import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.util.DisplayMetrics
+import com.facebook.react.uimanager.DisplayMetricsHolder
 `;
 
 const ADAPTIVE_ORIENTATION_METHODS = `
@@ -103,6 +104,18 @@ const ADAPTIVE_ORIENTATION_METHODS = `
       } else {
         ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
       }
+
+    // RN 0.81 refreshes its cached dimensions only when display rotation changes.
+    // Switching foldable displays can keep ROTATION_0, leaving useWindowDimensions
+    // on the cover size even though Android has already expanded the window.
+    DisplayMetricsHolder.initDisplayMetrics(this)
+    val reactContext = reactHost?.currentReactContext
+    if (reactContext?.hasActiveReactInstance() == true) {
+      reactContext.emitDeviceEvent(
+        "didUpdateDimensions",
+        DisplayMetricsHolder.getDisplayMetricsWritableMap(resources.configuration.fontScale.toDouble())
+      )
+    }
   }
 `;
 
