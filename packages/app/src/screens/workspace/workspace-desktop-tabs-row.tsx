@@ -110,9 +110,9 @@ const TAB_ICON_WIDTH = 14;
 const TAB_CONTENT_GAP = 4;
 const TAB_DROP_INDICATOR_WIDTH = 4;
 const TAB_MODIFIED_DOT_SIZE = 8;
-const TAB_MIN_WIDTH = 64;
+const TAB_MIN_WIDTH = isNative ? 96 : 64;
 const TAB_MAX_WIDTH = 160;
-const TAB_CLOSE_BUTTON_RESERVED_WIDTH = 0;
+const TAB_CLOSE_BUTTON_RESERVED_WIDTH = isNative ? 56 : 0;
 const TAB_LABEL_LAYOUT_ALLOWANCE = 4;
 const AGENT_TOOLTIP_TITLE_MAX_LENGTH = 80;
 
@@ -1632,6 +1632,8 @@ const styles = StyleSheet.create((theme) => ({
   tab: {
     height: buttonControlHeight.xs,
     paddingHorizontal: TAB_CHIP_HORIZONTAL_PADDING,
+    // Native tabs show both controls. Keep the close overlay clear of the menu.
+    paddingRight: isNative ? 32 : TAB_CHIP_HORIZONTAL_PADDING,
     borderRadius: theme.borderRadius.md,
     flexDirection: "row",
     alignItems: "center",
@@ -1725,7 +1727,7 @@ const styles = StyleSheet.create((theme) => ({
     top: 0,
     right: 0,
     bottom: 0,
-    width: 48,
+    width: isNative ? 26 : 48,
     borderTopRightRadius: theme.borderRadius.md,
     borderBottomRightRadius: theme.borderRadius.md,
     alignItems: "center",
