@@ -3,7 +3,7 @@ import { ICON_SIZE, type Theme } from "@/styles/theme";
 
 /**
  * Density sizes for surfaces that opt into touch sizing: rows and icons grow on compact
- * layouts and keep their desktop sizes from the `md` breakpoint up. Plain theme tokens stay
+ * layouts and keep their desktop sizes from the `medium` breakpoint up. Plain theme tokens stay
  * desktop-sized everywhere, so a surface migrates by swapping its sizes for these.
  *
  * Style values are Unistyles breakpoint values, resolved inside `StyleSheet.create`. Icon sizes
@@ -14,9 +14,9 @@ export type DensityIconSize = keyof typeof ICON_SIZE;
 
 const COMPACT_ICON_SIZE: Record<DensityIconSize, number> = { xs: 14, sm: 18, md: 20, lg: 24 };
 
-// Compact layouts end where `md` begins; see `isCompactBreakpoint`.
+// Compact layouts end where `medium` begins; see `isCompactBreakpoint`.
 function byLayout<T>(compact: T, desktop: T) {
-  return { xs: compact, md: desktop };
+  return { xs: compact, medium: desktop };
 }
 
 export const density = {
@@ -31,8 +31,8 @@ export const density = {
 };
 
 /** Resolves a density value for a prop, which Unistyles cannot resolve on its own. */
-export function resolveDensity<T>(rt: { breakpoint?: string }, value: { xs: T; md: T }): T {
-  return isCompactBreakpoint(rt.breakpoint) ? value.xs : value.md;
+export function resolveDensity<T>(rt: { breakpoint?: string }, value: { xs: T; medium: T }): T {
+  return isCompactBreakpoint(rt.breakpoint) ? value.xs : value.medium;
 }
 
 /** The width or height of a slot that holds an icon of `size`. */
