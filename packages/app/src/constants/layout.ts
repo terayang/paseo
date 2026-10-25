@@ -1,5 +1,6 @@
-import { useUnistyles } from "react-native-unistyles";
+import { useWindowDimensions } from "react-native";
 import { isWeb } from "@/constants/platform";
+import { APP_BREAKPOINTS } from "@/styles/breakpoints";
 
 export const FOOTER_HEIGHT = 75;
 
@@ -38,13 +39,12 @@ export function isCompactBreakpoint(breakpoint: string | undefined): boolean {
   return breakpoint === "xs" || breakpoint === "sm";
 }
 
-/**
- * Reactive hook — re-renders the component when the breakpoint changes.
- * Always use this instead of reading UnistylesRuntime.breakpoint directly.
- */
+/** React to live window sizes, including fold transitions and freeform resizing. */
 export function useIsCompactFormFactor(): boolean {
-  const { rt } = useUnistyles();
-  return isCompactBreakpoint(rt.breakpoint);
+  // RN receives onGlobalLayout updates while Android freeform windows resize;
+  // Unistyles' configuration broadcast can lag behind that window change.
+  const { width } = useWindowDimensions();
+  return width < APP_BREAKPOINTS.medium;
 }
 
 // SplitContainer relies on dnd-kit and DOM-backed accessibility helpers.
