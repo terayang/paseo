@@ -14,6 +14,10 @@ const VERTICAL_SCROLL_SLOP = 12;
 const DRAG_SCALE = 1.02;
 const DRAG_OPACITY = 0.9;
 
+function triggerSelectionHaptic() {
+  void Haptics.selectionAsync().catch(() => {});
+}
+
 /**
  * Resolves the index a chip would land on given a finger offset relative to
  * the chip's original left edge. Chips have measured (per-item) widths, so the
@@ -201,7 +205,7 @@ function SortableNativeItem<T>({
           translationX.value = 0;
           targetIndex.value = index;
           runOnJS(setActiveIndex)(index);
-          void Haptics.selectionAsync().catch(() => {});
+          runOnJS(triggerSelectionHaptic)();
         })
         .onUpdate((event) => {
           translationX.value = event.translationX;
