@@ -4,6 +4,7 @@ const pkg = require("./package.json");
 const withAndroidAsyncStorageSize = require("./plugins/with-android-async-storage-size");
 const withAndroidOptionalCamera = require("./plugins/with-android-optional-camera");
 const withAndroidProfileable = require("./plugins/with-android-profileable");
+const withAndroidRotationUnlocked = require("./plugins/with-android-rotation");
 const withFdroidAutolinking = require("./plugins/with-fdroid-autolinking");
 const withPasteInput = require("./plugins/with-paste-input");
 const withAndroidScroll = require("./modules/paseo-scroll/app.plugin");
@@ -92,6 +93,13 @@ const variants = {
       fallbackRelativePath: "./.secrets/GoogleService-Info.debug.plist",
     }),
   },
+  // Fork-only distribution variant (tablet/foldable large-screen builds,
+  // see the workspace's outer 适配实施记录.md). Separate packageId so it
+  // coexists with the official app; no Firebase config is provided.
+  largescreen: {
+    name: "Paseo Large Screen",
+    packageId: "sh.paseo.largescreen",
+  },
 };
 
 const variant = variants[appVariant] ?? variants.production;
@@ -102,6 +110,11 @@ export default {
     name: variant.name,
     slug: "voice-mobile",
     version: nativeReleaseVersion.appVersion,
+    // Stays "portrait" so iOS keeps its static lock (rotating the iPadOS app
+    // crashes it, see getpaseo/paseo#1030). On Android the
+    // with-android-rotation config plugin rewrites the activities to follow
+    // the system and injects a native orientation policy into MainActivity
+    // (small displays lock portrait, large displays rotate freely).
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "paseo",
@@ -183,6 +196,7 @@ export default {
       ],
       ...buildProfile.fdroidPlugins,
       ...(isProfileBuild || isWatchdogBuild ? [withAndroidProfileable] : []),
+      withAndroidRotationUnlocked,
     ],
     experiments: {
       typedRoutes: true,
