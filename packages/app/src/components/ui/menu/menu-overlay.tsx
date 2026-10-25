@@ -19,6 +19,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Keyframe, runOnJS } from "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native-unistyles";
 import { FloatingScrollView, FloatingSurface } from "@/components/ui/floating";
 import { isWeb } from "@/constants/platform";
@@ -40,6 +41,10 @@ import {
 } from "../anchor";
 
 const SCROLL_CONTENT_STYLE = { flexGrow: 1 } as const;
+// Android Modals live in a separate native view hierarchy, outside the
+// app-level GestureHandlerRootView — RNGH gestures inside menu overlays
+// silently dead-end without a local root (getpaseo/paseo#4377).
+const GESTURE_ROOT_FILL = { flex: 1 } as const;
 const CONTENT_ENTERING_DURATION_MS = 150;
 
 const contentEntering = new Keyframe({
@@ -513,7 +518,7 @@ export function MenuOverlay({
       statusBarTranslucent={Platform.OS === "android"}
       onRequestClose={onClose}
     >
-      {overlay}
+      <GestureHandlerRootView style={GESTURE_ROOT_FILL}>{overlay}</GestureHandlerRootView>
     </Modal>
   );
 }

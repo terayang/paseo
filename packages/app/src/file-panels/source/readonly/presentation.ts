@@ -1,6 +1,6 @@
 export const SOURCE_PRESENTATION_BUDGETS = {
   web: { highlighted: 10 * 1024 * 1024, plain: 50 * 1024 * 1024 },
-  native: { highlighted: 1024 * 1024, plain: 10 * 1024 * 1024 },
+  native: { highlighted: 10 * 1024 * 1024, plain: 50 * 1024 * 1024 },
 } as const;
 
 export type SourcePresentation = "highlighted" | "plain" | "unsupported";
