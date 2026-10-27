@@ -2,7 +2,7 @@ const { withAndroidManifest, withMainActivity } = require("expo/config-plugins")
 
 // Preserve upstream's iOS scene/orientation configuration. On Android, a
 // portrait declaration letterboxes landscape tablets (getpaseo/paseo#1669),
-// so the native policy below follows the physical display instead.
+// so the native policy below follows the display's available area instead.
 //
 // resizeableActivity is declared explicitly: it defaults to true at our
 // targetSdk, but external-display/multi-window hosts (car head units running
@@ -44,11 +44,13 @@ function withRotationManifest(config) {
 // display switches (DisplayMetricsHolder only re-initializes on rotation
 // changes), so after cover -> inner display the JS kept believing in a small
 // portrait screen and re-asserted/kept the portrait lock while the system
-// letterboxed the window — and vice versa on fold. The real display size is
-// only reliably known natively.
+// letterboxed the window — and vice versa on fold. An activity's Display APIs
+// can also be sandboxed to its letterboxed bounds, so use a separate window
+// context on the same display when deciding whether to unlock orientation.
 const ADAPTIVE_ORIENTATION_IMPORTS = `import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.util.DisplayMetrics
+import android.view.WindowManager
 import com.facebook.react.uimanager.DisplayMetricsHolder
 `;
 
@@ -83,8 +85,23 @@ const ADAPTIVE_ORIENTATION_METHODS = `
       @Suppress("DEPRECATION")
       windowManager.defaultDisplay
     }
+    if (currentDisplay == null) return
     val metrics = DisplayMetrics()
-    currentDisplay?.getRealMetrics(metrics) ?: return
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      // Activity maximumWindowMetrics and getRealMetrics can both report the
+      // letterboxed app bounds (ALWAYS_SANDBOX_DISPLAY_APIS). A window context
+      // uses the display area, breaking the small-screen/portrait-lock cycle.
+      val displayContext = createDisplayContext(currentDisplay)
+        .createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
+      val bounds = displayContext.getSystemService(WindowManager::class.java)
+        .maximumWindowMetrics.bounds
+      metrics.widthPixels = bounds.width()
+      metrics.heightPixels = bounds.height()
+      metrics.densityDpi = displayContext.resources.configuration.densityDpi
+    } else {
+      @Suppress("DEPRECATION")
+      currentDisplay.getRealMetrics(metrics)
+    }
     val smallestWidthDp = minOf(metrics.widthPixels, metrics.heightPixels) * 160 / metrics.densityDpi
     val displayPortrait = metrics.heightPixels >= metrics.widthPixels
     val windowLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
