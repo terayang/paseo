@@ -1,9 +1,10 @@
 import { RenderProfile } from "@/utils/render-profiler";
-import { useCallback, useState, type ComponentProps } from "react";
+import { useCallback, useMemo, useState, type ComponentProps } from "react";
 import { ExpoRoot } from "expo-router";
 import Head from "expo-router/head";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Platform, useWindowDimensions } from "react-native";
 import { queryClient } from "@/data/query-client";
 import { I18nProvider } from "@/i18n/provider";
 import { RootErrorBoundary } from "@/components/root-error-boundary";
@@ -22,13 +23,21 @@ export function RootApp() {
 }
 
 export function RootRouter({ context: routes }: Pick<ComponentProps<typeof ExpoRoot>, "context">) {
+  const { width, height } = useWindowDimensions();
+  // Android can resize the native surface while mounted content retains the
+  // previous display's frame. Follow RN's live window metrics at the content
+  // root so background folds do not depend on a parent relayout.
+  const viewportStyle = useMemo(
+    () => (Platform.OS === "android" ? { flex: 0, width, height } : undefined),
+    [width, height],
+  );
   const [generation, setGeneration] = useState(0);
   const reload = useCallback(() => setGeneration((value) => value + 1), []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <SafeAreaProvider>
+        <SafeAreaProvider style={viewportStyle}>
           <RootErrorBoundary key={generation} onReload={reload}>
             <Head.Provider>
               {/* Recreate the router at a safe destination before a failed route can mount. */}
