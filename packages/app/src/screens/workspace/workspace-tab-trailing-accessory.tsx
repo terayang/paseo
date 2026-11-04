@@ -90,12 +90,17 @@ export function MobileTabTrailingAccessory({
   presentationLabel,
   menuEntries,
   openWith,
+  triggerProps,
 }: {
   menuTestIDBase: string;
   presentationLabel: string;
   menuEntries: WorkspaceTabMenuEntry[];
   /** A file tab's "Open with…" row and its page. */
   openWith?: FilePanelOpenWithMenu;
+  triggerProps?: Omit<
+    React.ComponentProps<typeof DropdownMenuTrigger>,
+    "children" | "style" | "testID" | "accessibilityRole" | "accessibilityLabel" | "hitSlop"
+  >;
 }): ReactElement {
   const { t } = useTranslation();
   return (
@@ -106,6 +111,7 @@ export function MobileTabTrailingAccessory({
         accessibilityLabel={t("workspace.tabs.menu.openFor", { label: presentationLabel })}
         hitSlop={8}
         style={mobileTabMenuTriggerStyle}
+        {...triggerProps}
       >
         <ThemedEllipsis size={14} uniProps={mutedColorMapping} />
       </DropdownMenuTrigger>
