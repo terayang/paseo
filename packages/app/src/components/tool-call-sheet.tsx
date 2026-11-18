@@ -27,8 +27,9 @@ export interface ToolCallSheetData {
 }
 
 interface ToolCallSheetContextValue {
-  openToolCall: (data: ToolCallSheetData) => void;
+  openToolCall: (token: object, data: ToolCallSheetData) => void;
   closeToolCall: () => void;
+  syncToolCallData: (token: object, data: ToolCallSheetData) => void;
 }
 
 // ----- Context -----
@@ -83,19 +84,33 @@ interface ToolCallSheetProviderProps {
   children: ReactNode;
 }
 
+// The sheet renders live tool call data through a token-scoped sync: the caller
+// opens with an opaque token and re-syncs on every stream update, so the sheet
+// follows streaming output instead of freezing at the moment it was opened.
+interface ToolCallSheetSession {
+  token: object;
+  data: ToolCallSheetData;
+}
+
 export function ToolCallSheetProvider({ children }: ToolCallSheetProviderProps) {
-  const [sheetData, setSheetData] = React.useState<ToolCallSheetData | null>(null);
+  const [session, setSession] = React.useState<ToolCallSheetSession | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
   const snapPoints = useMemo(() => ["60%", "95%"], []);
 
-  const openToolCall = useCallback((data: ToolCallSheetData) => {
-    setSheetData(data);
+  const openToolCall = useCallback((token: object, data: ToolCallSheetData) => {
+    setSession({ token, data });
     setIsSheetOpen(true);
   }, []);
 
   const closeToolCall = useCallback(() => {
     setIsSheetOpen(false);
+  }, []);
+
+  const syncToolCallData = useCallback((token: object, data: ToolCallSheetData) => {
+    setSession((current) =>
+      current !== null && current.token === token ? { ...current, data } : current,
+    );
   }, []);
 
   const {
@@ -109,12 +124,12 @@ export function ToolCallSheetProvider({ children }: ToolCallSheetProviderProps) 
 
   const handleToolCallSheetDismiss = useCallback(() => {
     handleSheetDismiss();
-    setSheetData(null);
+    setSession(null);
   }, [handleSheetDismiss]);
 
   const contextValue = useMemo(
-    () => ({ openToolCall, closeToolCall }),
-    [openToolCall, closeToolCall],
+    () => ({ openToolCall, closeToolCall, syncToolCallData }),
+    [openToolCall, closeToolCall, syncToolCallData],
   );
 
   return (
@@ -131,7 +146,7 @@ export function ToolCallSheetProvider({ children }: ToolCallSheetProviderProps) 
         backdropOpacity={0.5}
         enablePanDownToClose
       >
-        {sheetData && <ToolCallSheetContent data={sheetData} onClose={closeToolCall} />}
+        {session && <ToolCallSheetContent data={session.data} onClose={closeToolCall} />}
       </ToolCallSheetModal>
     </ToolCallSheetContext.Provider>
   );

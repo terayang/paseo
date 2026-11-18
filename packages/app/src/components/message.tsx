@@ -87,7 +87,7 @@ import { getTurnDurationLabel } from "./assistant-turn-footer-label";
 import { getCompactionMarkerLabel } from "./message-compaction-label";
 import { PlanCard } from "./plan-card";
 import { ToolCallDetailsContent } from "./tool-call-details";
-import { useToolCallSheet } from "./tool-call-sheet";
+import { useToolCallSheet, type ToolCallSheetData } from "./tool-call-sheet";
 export type { InlinePathTarget } from "@/assistant-file-links";
 export type { AssistantForkTarget };
 
@@ -2270,7 +2270,8 @@ export const ToolCall = memo(function ToolCall({
   itemId,
   standalone = true,
 }: ToolCallProps) {
-  const { openToolCall } = useToolCallSheet();
+  const { openToolCall, syncToolCallData } = useToolCallSheet();
+  const sheetTokenRef = useRef<object | null>(null);
   const { expanded: isExpanded, toggle: toggleExpanded } = useToolCallExpanded({
     callId: itemId,
     defaultExpanded: defaultExpanded ?? false,
@@ -2319,33 +2320,34 @@ export const ToolCall = memo(function ToolCall({
     return () => onOpenFilePath(openFilePath);
   }, [presentation.openFilePath, onOpenFilePath]);
 
+  const buildSheetData = useCallback(
+    (): ToolCallSheetData => ({
+      toolName,
+      displayName: presentation.displayName,
+      summary: presentation.summary,
+      detail: presentation.detail,
+      errorText: presentation.errorText,
+      icon: presentation.icon,
+      showLoadingSkeleton: presentation.isLoadingDetails,
+    }),
+    [toolName, presentation],
+  );
+
   const handleToggle = useCallback(() => {
     if (!shouldRenderInline) {
-      openToolCall({
-        toolName,
-        displayName: presentation.displayName,
-        summary: presentation.summary,
-        detail: presentation.detail,
-        errorText: presentation.errorText,
-        icon: presentation.icon,
-        showLoadingSkeleton: presentation.isLoadingDetails,
-      });
+      const token = {};
+      sheetTokenRef.current = token;
+      openToolCall(token, buildSheetData());
     } else {
       hold(toggleExpanded);
     }
-  }, [
-    hold,
-    shouldRenderInline,
-    toggleExpanded,
-    openToolCall,
-    toolName,
-    presentation.detail,
-    presentation.displayName,
-    presentation.summary,
-    presentation.errorText,
-    presentation.icon,
-    presentation.isLoadingDetails,
-  ]);
+  }, [hold, shouldRenderInline, toggleExpanded, openToolCall, buildSheetData]);
+
+  useEffect(() => {
+    if (sheetTokenRef.current) {
+      syncToolCallData(sheetTokenRef.current, buildSheetData());
+    }
+  }, [buildSheetData, syncToolCallData]);
 
   useEffect(() => {
     if (!onInlineDetailsExpandedChange) {

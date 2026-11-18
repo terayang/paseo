@@ -21,6 +21,7 @@ import {
   LegendList,
   type LegendListRef,
   type LegendListRenderItemProps,
+  type OnViewableItemsChangedInfo,
   useSyncLayout,
 } from "@legendapp/list/react-native";
 import { withUnistyles } from "react-native-unistyles";
@@ -147,6 +148,7 @@ function NativeStreamViewport(props: StreamRenderInput & { strategy: StreamStrat
     isInitialHistoryLoading,
     revealInitialHistory,
     onNearBottomChange,
+    onReadingPositionChange,
     onNearHistoryStart,
     isLoadingOlderHistory,
     hasOlderHistory,
@@ -203,6 +205,14 @@ function NativeStreamViewport(props: StreamRenderInput & { strategy: StreamStrat
     newRowEstimates.noteRows(nextRows);
     return nextRows;
   }, [newRowEstimates, historyRows, liveRows]);
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 25 }), []);
+  const handleViewableItemsChanged = useStableEvent(
+    ({ viewableItems }: OnViewableItemsChangedInfo<StreamItem>) => {
+      onReadingPositionChange?.(viewableItems[0]?.item.id ?? null);
+    },
+  );
   const getEstimatedItemSize = useStableEvent((item: StreamItem) => newRowEstimates.estimate(item));
   const getHistoryStartPaginationInput = useStableEvent((): HistoryStartPaginationInput => {
     const metrics = streamViewportMetricsRef.current;
@@ -455,6 +465,12 @@ function NativeStreamViewport(props: StreamRenderInput & { strategy: StreamStrat
           agentId,
           reason,
         });
+      },
+      scrollToMessage: (itemId: string) => {
+        const index = rowsRef.current.findIndex((row) => row.id === itemId);
+        if (index >= 0) {
+          void listRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: true });
+        }
       },
       prepareForViewportChange: () => {
         bottomAnchorController.prepareForStickyViewportChange();
@@ -767,6 +783,8 @@ function NativeStreamViewport(props: StreamRenderInput & { strategy: StreamStrat
         drawDistance={NATIVE_STREAM_DRAW_DISTANCE}
         getEstimatedItemSize={getEstimatedItemSize}
         scrollEnabled={scrollEnabled}
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={handleViewableItemsChanged}
         showsVerticalScrollIndicator
       />
       {!historyStartPaginationState.visible ? (

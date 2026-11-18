@@ -92,6 +92,11 @@ const variants = {
       fallbackRelativePath: "./.secrets/GoogleService-Info.debug.plist",
     }),
   },
+  // Separate community package so it can coexist with the official app.
+  largescreen: {
+    name: "Paseo Large Screen",
+    packageId: "sh.paseo.largescreen",
+  },
 };
 
 const variant = variants[appVariant] ?? variants.production;

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { AgentTimelinePromptIndexPayload } from "@getpaseo/client/internal/daemon-client";
-import { isWeb } from "@/constants/platform";
 import { useStableEvent } from "@/hooks/use-stable-event";
 import { getHostRuntimeStore } from "@/runtime/host-runtime";
 import { planTimelinePromptJump } from "@/timeline/timeline-sync-plan";
@@ -81,7 +80,7 @@ export function useChatOutline({
   const readingSeqRef = useRef<number | null>(null);
   const nextJumpRequestIdRef = useRef(0);
   const nextIndexRequestIdRef = useRef(0);
-  // A disabled outline (every native viewport) must not pay for the timeline per delta.
+  // A disabled outline must not pay for the timeline per delta.
   const loadedTail = enabled ? tail : NO_STREAM_ITEMS;
   const loadedHead = enabled ? (head ?? NO_STREAM_ITEMS) : NO_STREAM_ITEMS;
   const prompts = enabled ? (index?.prompts ?? NO_PROMPTS) : NO_PROMPTS;
@@ -100,7 +99,7 @@ export function useChatOutline({
   // Only a timeline the daemon has served can be indexed. A draft's optimistic stream has no
   // epoch, and its id names no agent the daemon knows.
   useEffect(() => {
-    if (!isWeb || !enabled || timelineEpoch === null) {
+    if (!enabled || timelineEpoch === null) {
       setIndex(null);
       return;
     }
